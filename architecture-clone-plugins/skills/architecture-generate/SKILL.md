@@ -78,7 +78,7 @@ description: Use when escribiendo, editando o revisando código en <proyecto>. <
 - [ ] Reglas de oro presentes y no negociables
 - [ ] Ejemplos de código copiados literalmente de archivos reales (verificar contra los archivos fuente: imports, campos, rutas)
 - [ ] Copia espejo escrita en `.claude/skills/` Y `.opencode/skills/`; ambas rutas registradas en `state.json` (`skillGenerada` + `skillEspejo`)
-- [ ] `state.json` actualizado (`paso: "listo"`, `skillGenerada`, `fecha`)
+- [ ] `state.json` actualizado (`paso: "listo"`, `skillGenerada`, `skillEspejo`, `fecha`)
 
 ## Regla de oro
 - Si falta el summary o el estado → no inventar: pedir el análisis.
