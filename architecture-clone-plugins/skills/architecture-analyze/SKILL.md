@@ -11,9 +11,11 @@ Descubrir cómo se construye un proyecto: patrones, decisiones y convenciones qu
 ## Destino y estado
 - Carpeta de estado: `<proyecto>/.architecture-clone/` (crear si falta)
 - Escribir `state.json` al terminar con: `proyecto` (ruta absoluta), `nombre` (slug kebab-case), `paso: "analyze"`, `resumen` (ruta al summary), `fecha` (ISO). Respetar `state.schema.json` del plugin.
-- Si `state.json` existe con `paso: "generate"` o `"listo"` → NO ejecutar análisis completo; devolver control al orquestador.
+- Checkpoint `progreso`: actualizarlo en CADA hito del análisis — `estructura` (dimensiones 1-3), `stack` (4-6), `testing` (7-8), `resumen` (9 + escritura del summary). Si una pasada se interrumpe, retomar desde el checkpoint: NO re-analizar dimensiones ya completadas.
+- Si `state.json` existe con `paso: "listo"` o con `progreso: "resumen"` → el análisis está completo; NO ejecutar análisis completo; devolver control al orquestador.
 
 ## Procedimiento
+0. Si `state.json.progreso` existe, retomar desde ahí: saltar dimensiones ya completadas y continuar en la siguiente.
 1. Raíz del proyecto: ruta dada por el usuario o el proyecto actual. Si el usuario da un subdirectorio de app, analizar SOLO esa app.
 2. Leer manifiestos y config raíz: gestor de paquetes (package.json + package-lock/pnpm-lock/yarn.lock, requirements.txt/pyproject.toml, go.mod, Cargo.toml, pom.xml…), tsconfig, .env.example, Dockerfile, `.github/workflows/`, Makefile, scripts de build.
 3. Mapear estructura de carpetas (2-3 niveles). Excluir dependencias (node_modules, vendor, .venv, dist, build, .git) — no aportan decisiones.
