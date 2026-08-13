@@ -2,7 +2,7 @@
 
 Ecosistema de skills para OpenCode/Claude Code que analiza la arquitectura de un proyecto y genera un skill de convenciones reutilizable: en sesiones futuras, el agente carga ese skill y escribe código nuevo consistente con "cómo se construye" ese proyecto.
 
-Pipeline: `analizar → resumir → generar skill de convenciones`.
+Pipeline: `validar → analizar → resumir → generar skill de convenciones → validar`.
 
 ## Instalación
 
@@ -23,6 +23,7 @@ El orquestador (`architecture-clone`) decide la skill del paso actual según `st
 
 | Skill | Salida |
 |---|---|
+| architecture-validate | Reporte V1-V7 de continuidad + auto-sanado de `state.json` |
 | architecture-analyze | `<proyecto>/.architecture-clone/state.json` + `architecture-summary.md` |
 | architecture-generate | `<proyecto>/.claude/skills/<slug>-convenciones/SKILL.md` + espejo en `.opencode/skills/` |
 
@@ -51,7 +52,7 @@ El resumen documenta **patrones y decisiones**, no un inventario archivo por arc
 
 ## Estado intermedio
 
-`<proyecto>/.architecture-clone/` guarda `state.json` (contrato en `state.schema.json`) y `architecture-summary.md`. Versionable con el repo; permite retomar análisis a medias.
+`<proyecto>/.architecture-clone/` guarda `state.json` (contrato en `state.schema.json`), `architecture-summary.md` y el checkpoint `progreso`. Versionable con el repo; permite retomar análisis a medias y validar continuidad antes de cada paso.
 
 ## Limitaciones conocidas
 
