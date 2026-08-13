@@ -1,0 +1,56 @@
+diff --git a/architecture-clone-plugins/state.schema.json b/architecture-clone-plugins/state.schema.json
+index 0587bf1..8914b26 100644
+--- a/architecture-clone-plugins/state.schema.json
++++ b/architecture-clone-plugins/state.schema.json
+@@ -1,35 +1,44 @@
+ {
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "title": "architecture-clone state.json",
+-  "description": "Contrato del estado intermedio entre architecture-analyze y architecture-generate. Informativo: no hay validaci├│n en runtime.",
++  "description": "Contrato del estado intermedio entre architecture-analyze, architecture-validate y architecture-generate. Informativo: no hay validaci├│n en runtime.",
+   "type": "object",
+-  "required": ["proyecto", "nombre", "paso", "fecha"],
++  "required": ["proyecto", "nombre", "paso", "fecha", "resumen"],
+   "properties": {
+     "proyecto": {
+       "type": "string",
+       "description": "Ruta absoluta del proyecto analizado"
+     },
+     "nombre": {
+       "type": "string",
+       "description": "Slug kebab-case del proyecto; base del nombre del skill generado"
+     },
+     "paso": {
+       "type": "string",
+-      "enum": ["analyze", "generate", "listo"],
+-      "description": "Etapa actual del pipeline"
++      "enum": ["analyze", "listo"],
++      "description": "Etapa actual del pipeline. 'generate' ya no es un paso: el orquestador decide por artefactos en disco"
+     },
+     "resumen": {
+       "type": "string",
+-      "description": "Ruta al architecture-summary.md"
++      "description": "Ruta al architecture-summary.md. Requerido: architecture-analyze siempre lo escribe"
++    },
++    "progreso": {
++      "type": "string",
++      "enum": ["estructura", "stack", "testing", "resumen"],
++      "description": "Checkpoint del an├ílisis (Task 4). 'resumen' significa an├ílisis completo; permite retomar pasadas a medias"
+     },
+     "skillGenerada": {
+       "type": "string",
+-      "description": "Ruta principal al SKILL.md de convenciones generado"
++      "description": "Ruta principal al SKILL.md de convenciones generado (.claude/skills/...)"
++    },
++    "skillEspejo": {
++      "type": "string",
++      "description": "Ruta de la copia espejo (.opencode/skills/...)"
+     },
+     "fecha": {
+       "type": "string",
+       "format": "date-time",
+       "description": "Fecha ISO de la ├║ltima actualizaci├│n"
+     }
+   }
+ }
+\ No newline at end of file

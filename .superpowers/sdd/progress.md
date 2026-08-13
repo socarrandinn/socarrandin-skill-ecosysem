@@ -1,0 +1,7 @@
+Task 1: complete (commits 061b624..ed420b5, review clean)
+Task 2: complete (commits ed420b5..64d98e7, review clean + fix V6 plan-mandated)
+Task 3: complete (commits 64d98e7..d0924b1, review clean; minors: no else-branch summary stale, no criterion re-analizar - triage final)
+Task 4: complete (commits d0924b1..b6e558b, review clean; minors: milestone labels stack/testing vs dimensiones, completion greps listo - triage final)
+Task 5: complete (commits b6e558b..81cff26, review clean; minors: prosa menciona architecture-summary.md literal en Mision/frontmatter - triage final)
+Task 6: complete (commit 570916d, suite T1-T10 ejecutada y verificada manualmente, fixture restaurado a T2 sano; README + SCENARIOS.md con checkboxes [x])
+Task 6: complete (commits 81cff26..570916d, review clean)

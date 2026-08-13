@@ -1,0 +1,402 @@
+diff --git a/architecture-clone-plugins/README.md b/architecture-clone-plugins/README.md
+index 043f9b0..335987e 100644
+--- a/architecture-clone-plugins/README.md
++++ b/architecture-clone-plugins/README.md
+@@ -1,35 +1,36 @@
+ # architecture-clone-plugins
+ 
+ Ecosistema de skills para OpenCode/Claude Code que analiza la arquitectura de un proyecto y genera un skill de convenciones reutilizable: en sesiones futuras, el agente carga ese skill y escribe c├│digo nuevo consistente con "c├│mo se construye" ese proyecto.
+ 
+-Pipeline: `analizar ÔåÆ resumir ÔåÆ generar skill de convenciones`.
++Pipeline: `validar ÔåÆ analizar ÔåÆ resumir ÔåÆ generar skill de convenciones ÔåÆ validar`.
+ 
+ ## Instalaci├│n
+ 
+ 1. Copiar `agent/`, `command/` y `skills/` a tu carpeta de skills de OpenCode (ej. `~/.config/opencode/skills/`), o usar el repo como carpeta de skills v├¡a `skills.paths` en `opencode.json`.
+ 2. Reiniciar OpenCode.
+ 
+ ## Uso
+ 
+ ```
+ clona la arquitectura de este proyecto
+ /architecture-clone
+ analiza la arquitectura de <ruta>
+ ```
+ 
+ El orquestador (`architecture-clone`) decide la skill del paso actual seg├║n `state.json`. Una skill activa por turno.
+ 
+ ## Pipeline
+ 
+ | Skill | Salida |
+ |---|---|
++| architecture-validate | Reporte V1-V7 de continuidad + auto-sanado de `state.json` |
+ | architecture-analyze | `<proyecto>/.architecture-clone/state.json` + `architecture-summary.md` |
+ | architecture-generate | `<proyecto>/.claude/skills/<slug>-convenciones/SKILL.md` + espejo en `.opencode/skills/` |
+ 
+ ## Qu├® analiza `architecture-analyze`
+ 
+ - Estructura de carpetas y convenciones de nombres
+ - Tech stack (lenguajes, frameworks, runtimes, build tools) con versiones
+ - Dependencias y gestor de paquetes
+ - Patrones de dise├▒o del sistema (MVC, capas, microservicios, hexagonalÔÇª)
+ - Manejo de estado
+@@ -44,21 +45,21 @@ El resumen documenta **patrones y decisiones**, no un inventario archivo por arc
+ 
+ `<slug>-convenciones` es un SKILL.md est├índar (frontmatter `name` + `description`, quick reference de convenciones, reglas concretas y ejemplos de c├│digo t├¡picos). Se escribe en dos ubicaciones para que lo cargue cualquier harness:
+ 
+ | Ubicaci├│n | Harness |
+ |---|---|
+ | `<proyecto>/.claude/skills/<slug>-convenciones/SKILL.md` | Claude Code |
+ | `<proyecto>/.opencode/skills/<slug>-convenciones/SKILL.md` | OpenCode (auto-detectado) |
+ 
+ ## Estado intermedio
+ 
+-`<proyecto>/.architecture-clone/` guarda `state.json` (contrato en `state.schema.json`) y `architecture-summary.md`. Versionable con el repo; permite retomar an├ílisis a medias.
++`<proyecto>/.architecture-clone/` guarda `state.json` (contrato en `state.schema.json`), `architecture-summary.md` y el checkpoint `progreso`. Versionable con el repo; permite retomar an├ílisis a medias y validar continuidad antes de cada paso.
+ 
+ ## Limitaciones conocidas
+ 
+ - `state.schema.json` es informativo: no hay validaci├│n en runtime.
+ - El resumen y el skill generado se escriben en espa├▒ol, independientemente del idioma del c├│digo analizado.
+ - El an├ílisis lo hace el agente con sus herramientas de lectura; proyectos muy grandes pueden requerir varias pasadas.
+ 
+ ## Licencia
+ 
+ MIT.
+\ No newline at end of file
+diff --git a/architecture-clone-plugins/agent/architecture-clone.md b/architecture-clone-plugins/agent/architecture-clone.md
+index 7cdfdba..78a7fdf 100644
+--- a/architecture-clone-plugins/agent/architecture-clone.md
++++ b/architecture-clone-plugins/agent/architecture-clone.md
+@@ -1,27 +1,32 @@
+ ---
+-description: Arquitecto de software senior: analiza la arquitectura de un proyecto y genera un skill de convenciones para que el c├│digo nuevo siga el mismo patr├│n. Respuesta a "clona la arquitectura", "analiza la arquitectura de", "genera el skill de convenciones".
++description: Arquitecto de software senior: analiza la arquitectura de un proyecto y genera un skill de convenciones para que el c├│digo nuevo siga el mismo patr├│n. Respuesta a "clona la arquitectura", "analiza la arquitectura de", "genera el skill de convenciones", "re-analiza".
+ mode: primary
+ ---
+ 
+ Eres arquitecto de software senior especializado en ingenier├¡a inversa de codebases. Trabajas con el sistema architecture-clone.
+ 
+ ## Comportamiento (cr├¡tico)
+ - Habla como arquitecto con a├▒os de experiencia: directo, t├®cnico pero claro, cero jerga innecesaria
+ - Una pregunta por turno, con opciones concretas
+ - Confirmas antes de cada fase ("┬┐Analizo la estructura y el stack?")
+ - Justificas decisiones como humano ("patr├│n por capas porque este dominio exige separaci├│n estricta")
+ - Ante pedido vago ("clona la arquitectura"), pides el proyecto concreto antes de empezar
+ 
+-## Flujo
+-1. SIEMPRE cargar skill architecture-analyze al inicio (o reanudar seg├║n `state.json`)
++## Flujo (3 fases: validate ÔåÆ analyze ÔåÆ generate)
++1. SIEMPRE cargar skill architecture-validate al inicio de CADA fase (validate antes de analyze, validate antes de generate, validate al final)
+ 2. Determinar proyecto objetivo: el proyecto actual si el usuario no da ruta expl├¡cita
+-3. Dejar que el pipeline decida la skill del paso actual seg├║n `state.json.paso`:
+-   - `analyze` o sin state ÔåÆ architecture-analyze
+-   - `generate` o `listo` y el usuario pide regenerar ÔåÆ architecture-generate
+-4. Cargar y ejecutar una skill a la vez; nunca dos simult├íneas
+-5. Reportar avance en lenguaje humano
++3. Si el reporte de validate dice `Resultado: DETENER` ÔåÆ no avanzar: mostrar el reporte, explicar qu├® falta y pedir decisi├│n
++4. Si `Resultado: CONTINUAR`, decidir la skill del paso seg├║n state.json.paso Y los artefactos en disco (nunca por un valor "generate"):
++   - sin state.json o `paso:"analyze"` sin summary ÔåÆ architecture-analyze
++   - `paso:"analyze"` con summary en disco ÔåÆ architecture-generate (el an├ílisis ya est├í completo)
++   - `paso:"listo"` ÔåÆ el pipeline est├í terminado; ofrecer:
++     - "regenerar el skill" (architecture-generate, sin re-analizar) si el summary sigue v├ílido
++     - "re-analizar" si la arquitectura cambi├│: confirmar con el usuario y forzar `paso:"analyze"` en state.json antes de cargar architecture-analyze
++5. Cargar y ejecutar una skill a la vez; nunca dos simult├íneas
++6. Reportar avance en lenguaje humano
+ 
+ ## L├¡mites
+ - No inventar convenciones: todo lo que entra en el skill generado debe venir del an├ílisis real del c├│digo
+ - No analizar carpetas de dependencias (node_modules, vendor, .gitÔÇª) salvo que aporten decisiones de arquitectura
+-- No prometer que el skill generado se cargar├í solo: explicar al usuario d├│nde qued├│ y que OpenCode lo detecta en la siguiente sesi├│n del proyecto
+\ No newline at end of file
++- No prometer que el skill generado se cargar├í solo: explicar al usuario d├│nde qued├│ y que OpenCode lo detecta en la siguiente sesi├│n del proyecto
++- Nunca avanzar con un Ô£ù bloqueante pendiente del reporte de validate
+\ No newline at end of file
+diff --git a/architecture-clone-plugins/skills/architecture-analyze/SKILL.md b/architecture-clone-plugins/skills/architecture-analyze/SKILL.md
+index a008c7a..f6ddea0 100644
+--- a/architecture-clone-plugins/skills/architecture-analyze/SKILL.md
++++ b/architecture-clone-plugins/skills/architecture-analyze/SKILL.md
+@@ -4,23 +4,25 @@ description: Use cuando hay que analizar la arquitectura de un proyecto y clonar
+ ---
+ 
+ # architecture-analyze
+ 
+ ## Misi├│n
+ Descubrir c├│mo se construye un proyecto: patrones, decisiones y convenciones que definen su arquitectura. NO producir inventario de archivos.
+ 
+ ## Destino y estado
+ - Carpeta de estado: `<proyecto>/.architecture-clone/` (crear si falta)
+ - Escribir `state.json` al terminar con: `proyecto` (ruta absoluta), `nombre` (slug kebab-case), `paso: "analyze"`, `resumen` (ruta al summary), `fecha` (ISO). Respetar `state.schema.json` del plugin.
+-- Si `state.json` existe con `paso: "generate"` o `"listo"` ÔåÆ NO ejecutar an├ílisis completo; devolver control al orquestador.
++- Checkpoint `progreso`: actualizarlo en CADA hito del an├ílisis ÔÇö `estructura` (dimensiones 1-3), `stack` (4-6), `testing` (7-8), `resumen` (9 + escritura del summary). Si una pasada se interrumpe, retomar desde el checkpoint: NO re-analizar dimensiones ya completadas.
++- Si `state.json` existe con `paso: "listo"` o con `progreso: "resumen"` ÔåÆ el an├ílisis est├í completo; NO ejecutar an├ílisis completo; devolver control al orquestador.
+ 
+ ## Procedimiento
++0. Si `state.json.progreso` existe, retomar desde ah├¡: saltar dimensiones ya completadas y continuar en la siguiente.
+ 1. Ra├¡z del proyecto: ruta dada por el usuario o el proyecto actual. Si el usuario da un subdirectorio de app, analizar SOLO esa app.
+ 2. Leer manifiestos y config ra├¡z: gestor de paquetes (package.json + package-lock/pnpm-lock/yarn.lock, requirements.txt/pyproject.toml, go.mod, Cargo.toml, pom.xmlÔÇª), tsconfig, .env.example, Dockerfile, `.github/workflows/`, Makefile, scripts de build.
+ 3. Mapear estructura de carpetas (2-3 niveles). Excluir dependencias (node_modules, vendor, .venv, dist, build, .git) ÔÇö no aportan decisiones.
+ 4. Leer una muestra representativa de cada capa/├írea: al menos 2-3 archivos por capa (routes, controllers, services, models, testsÔÇª). Leer archivos REALES: cada convenci├│n declarada debe poder trazarse a un archivo concreto.
+ 5. Las 9 dimensiones de an├ílisis (secci├│n siguiente). Para cada una: extraer la convenci├│n REAL (no la ideal).
+ 6. Escribir `architecture-summary.md` con el contrato de salida exacto y `state.json`.
+ 
+ ## Dimensiones de an├ílisis (todas obligatorias)
+ 1. **Estructura y nombres**: organigrama de carpetas, patr├│n de nombres de archivo (kebab-case, PascalCase, camelCase), d├│nde vive cada tipo de archivo, reglas de exports/imports (sufijos `.js`, barrels, etc.)
+ 2. **Tech stack**: lenguajes, frameworks, runtimes, build tools, transpiladores, versi├│n de Node/Python/etc. y de TS si aplica
+diff --git a/architecture-clone-plugins/skills/architecture-generate/SKILL.md b/architecture-clone-plugins/skills/architecture-generate/SKILL.md
+index f9a2c69..14a1cca 100644
+--- a/architecture-clone-plugins/skills/architecture-generate/SKILL.md
++++ b/architecture-clone-plugins/skills/architecture-generate/SKILL.md
+@@ -2,30 +2,30 @@
+ name: architecture-generate
+ description: Use cuando existe un resumen de arquitectura (architecture-summary.md + state.json en .architecture-clone/) y hay que generar el SKILL.md de convenciones del proyecto: "genera el skill de convenciones", "genera el skill".
+ ---
+ 
+ # architecture-generate
+ 
+ ## Misi├│n
+ Convertir el `architecture-summary.md` en un SKILL.md de convenciones reutilizable: en sesiones futuras, el agente lo carga y escribe c├│digo nuevo consistente con la arquitectura analizada.
+ 
+ ## Entradas y estado
+-- Leer `<proyecto>/.architecture-clone/state.json` y `<proyecto>/.architecture-clone/architecture-summary.md`
+-- Si no existe el summary o `state.json` ÔåÆ NO ejecutar; decir al usuario que primero corre architecture-analyze
++- Leer `<proyecto>/.architecture-clone/state.json`; el summary se lee desde la ruta `state.json.resumen` (NUNCA hardcodear la ruta)
++- Si no existe `state.json`, o `state.json.resumen` no existe en disco, o `state.json.progreso` no es `"resumen"` ÔåÆ NO ejecutar; decir al usuario que primero corre architecture-analyze (o architecture-validate)
+ - Slug del proyecto: `state.json.nombre`
+ 
+ ## Destino (espejo en ambas ubicaciones)
+ Escribir el MISMO contenido en:
+ 1. `<proyecto>/.claude/skills/<slug>-convenciones/SKILL.md` (Claude Code)
+ 2. `<proyecto>/.opencode/skills/<slug>-convenciones/SKILL.md` (OpenCode)
+ 
+-Crear carpetas si faltan. Actualizar `state.json` al final: `paso: "listo"`, `skillGenerada` (ruta principal), `fecha` ISO.
++Crear carpetas si faltan. Actualizar `state.json` al final: `paso: "listo"`, `skillGenerada` (ruta `.claude/skills/<slug>-convenciones/SKILL.md`), `skillEspejo` (ruta `.opencode/skills/<slug>-convenciones/SKILL.md`), `fecha` ISO.
+ 
+ ## Contrato del SKILL.md generado ÔÇö estructura EXACTA
+ 
+ ```markdown
+ ---
+ name: <slug>-convenciones
+ description: Use when escribiendo, editando o revisando c├│digo en <proyecto>. <2-4 keywords concretas del stack: ej. "Express, TypeScript, Zod, vitest">
+ ---
+ 
+ # <slug>-convenciones
+@@ -70,15 +70,15 @@ description: Use when escribiendo, editando o revisando c├│digo en <proyecto>. <
+ - Lenguaje de ├│rdenes concretas: "Siempre X", "Nunca Y", "Todo endpoint Z" ÔÇö no sugerencias ("considerarÔÇª")
+ - Ejemplos de c├│digo: copiar LITERALMENTE de archivos reales del proyecto (un controller, una ruta, un test, un validator). Abrir el archivo real y copiar su contenido, renombrando solo el recurso si se necesita. PROHIBIDO reconstruir ejemplos de memoria o inventar campos que no existen en el c├│digo real
+ 
+ ## Checklist de validaci├│n (OBLIGATORIO antes de terminar)
+ - [ ] Frontmatter YAML v├ílido: `name` y `description` presentes, sin tabulaciones
+ - [ ] `name` == nombre de la carpeta donde se escribe
+ - [ ] `description` empieza con "Use when" y menciona el proyecto
+ - [ ] Existen TODAS las secciones del contrato (ninguna omitida; "No aplica" en una l├¡nea si no corresponde)
+ - [ ] Reglas de oro presentes y no negociables
+ - [ ] Ejemplos de c├│digo copiados literalmente de archivos reales (verificar contra los archivos fuente: imports, campos, rutas)
+-- [ ] Copia espejo escrita en `.claude/skills/` Y `.opencode/skills/`
+-- [ ] `state.json` actualizado (`paso: "listo"`, `skillGenerada`, `fecha`)
++- [ ] Copia espejo escrita en `.claude/skills/` Y `.opencode/skills/`; ambas rutas registradas en `state.json` (`skillGenerada` + `skillEspejo`)
++- [ ] `state.json` actualizado (`paso: "listo"`, `skillGenerada`, `skillEspejo`, `fecha`)
+ 
+ ## Regla de oro
+-- Si falta el summary o el estado ÔåÆ no inventar: pedir el an├ílisis.
+\ No newline at end of file
++- Si falta el summary o el estado ÔåÆ no inventar: pedir el an├ílisis.
+diff --git a/architecture-clone-plugins/skills/architecture-validate/SKILL.md b/architecture-clone-plugins/skills/architecture-validate/SKILL.md
+new file mode 100644
+index 0000000..3e63a0b
+--- /dev/null
++++ b/architecture-clone-plugins/skills/architecture-validate/SKILL.md
+@@ -0,0 +1,74 @@
++---
++name: architecture-validate
++description: Use cuando hay que verificar la continuidad del estado del pipeline architecture-clone antes de analizar o generar: "valida el estado", "revisa la continuidad", "┬┐est├í todo en orden?". Comprueba state.json contra el contrato y contra los artefactos en disco.
++---
++
++# architecture-validate
++
++## Misi├│n
++Verificar que `<proyecto>/.architecture-clone/state.json` y los artefactos del tier anterior (architecture-summary.md, SKILL.md de convenciones) sean coherentes entre s├¡ antes de que otra skill act├║e. NO analiza ni genera: solo vigila continuidad.
++
++## Entrada
++- `<proyecto>/.architecture-clone/state.json`
++- `<proyecto>/.architecture-clone/architecture-summary.md`
++- `<proyecto>/.claude/skills/*-convenciones/SKILL.md`
++- `<proyecto>/.opencode/skills/*-convenciones/SKILL.md`
++- Contrato: `state.schema.json` del plugin
++
++## Procedimiento ÔÇö checks V1 a V7, en orden
++Correr TODOS los checks y producir UN reporte. Severidades: Ô£ù bloqueante (detener pipeline), ÔÜá aviso (saneable), Ô£ô ok.
++
++### V1 ÔÇö state.json existe y parsea
++- No existe ÔåÆ Ô£ù: "no hay state.json; correr architecture-analyze". Nunca crear archivo vac├¡o.
++- JSON inv├ílido ÔåÆ Ô£ù: reportar el error de parseo.
++
++### V2 ÔÇö campos requeridos presentes
++- Requeridos: `proyecto`, `nombre`, `paso`, `fecha`, `resumen`.
++- Falta `fecha` ÔåÆ sanear con fecha actual ISO.
++- Falta cualquier otro requerido ÔåÆ Ô£ù.
++
++### V3 ÔÇö paso v├ílido
++- Valores v├ílidos: `analyze`, `listo`.
++- Otro valor ÔåÆ Ô£ù: decisi├│n humana, nunca adivinar.
++
++### V4 ÔÇö resumen existe en disco
++- `state.json.resumen` no existe en disco (y paso es `analyze` o `listo`) ÔåÆ buscar `architecture-summary.md` en `<proyecto>/.architecture-clone/`:
++  - exactamente 1 ÔåÆ sanear la ruta en state.json; reportar "V4: resumen corregido ÔåÆ <ruta> (encontrado en disco)".
++  - 0 o 2+ ÔåÆ Ô£ù: "resumen ilegible; correr architecture-analyze".
++
++### V5 ÔÇö paso coherente con artefactos
++- `paso:"listo"` y no existe ning├║n `*-convenciones/SKILL.md` ÔåÆ ÔÜá: si el summary existe en disco, recalcular `paso:"analyze"` y reportar "V5: paso recalculado a analyze (skills ausentes); regenerar skill con architecture-generate".
++- `paso:"analyze"` y existe `*-convenciones/SKILL.md` ÔåÆ ÔÜá: recalcular a `paso:"listo"` y rellenar `skillGenerada`/`skillEspejo` desde disco (ver V6).
++
++### V6 ÔÇö rutas de skill viven en disco (solo si `paso:"listo"` o si los campos existen en state.json; con `paso:"analyze"` y sin campos, marcar Ô£ô ÔÇö las skills a├║n no se generan)
++- `skillGenerada` no existe o apunta a nada ÔåÆ escanear `<proyecto>/.claude/skills/*-convenciones/SKILL.md`:
++  - exactamente 1 ÔåÆ sanear `skillGenerada`; reportar con evidencia.
++  - 0 ÔåÆ dejar, reportar ÔÜá "skill principal ausente".
++- `skillEspejo` no existe o apunta a nada ÔåÆ escanear `<proyecto>/.opencode/skills/*-convenciones/SKILL.md`:
++  - exactamente 1 ÔåÆ sanear `skillEspejo`; reportar con evidencia.
++  - 0 ÔåÆ ÔÜá "skill parcial: falta espejo; completar con architecture-generate".
++
++### V7 ÔÇö fecha
++- `fecha` falta o no parsea ISO ÔåÆ sanear con fecha actual.
++
++## Auto-sanado ÔÇö reglas
++- Solo tocar `state.json`. Nunca crear ni borrar summary ni skills.
++- Solo sanar campos derivables de disco. Ambig├╝edad ÔåÆ DETENER con reporte.
++- Registrar cada saneo en el reporte con evidencia: "V6: skillEspejo corregido ÔåÆ <ruta> (encontrado en disco)".
++
++## Reporte ÔÇö formato obligatorio
++```
++architecture-validate: <proyecto>
++V1 Ô£ô state.json parsea
++V2 Ô£ô campos requeridos presentes
++V3 Ô£ô paso="analyze" v├ílido
++V4 Ô£ô resumen en disco: <ruta>
++V5 Ô£ô paso coherente con artefactos
++V6 ÔÜá skillEspejo corregido ÔåÆ <ruta> (encontrado en disco)
++V7 Ô£ô fecha ISO
++Resultado: CONTINUAR
++```
++Una l├¡nea por check, con severidad y evidencia. Resultado final: `CONTINUAR` (sin Ô£ù) o `DETENER` (con Ô£ù pendientes).
++
++## Regla de oro
++- Nunca adivinar: si hay ambig├╝edad, DETENER y reportar. El orquestador decide.
+\ No newline at end of file
+diff --git a/architecture-clone-plugins/state.schema.json b/architecture-clone-plugins/state.schema.json
+index 0587bf1..8914b26 100644
+--- a/architecture-clone-plugins/state.schema.json
++++ b/architecture-clone-plugins/state.schema.json
+@@ -1,35 +1,44 @@
+ {
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "title": "architecture-clone state.json",
+-  "description": "Contrato del estado intermedio entre architecture-analyze y architecture-generate. Informativo: no hay validaci├│n en runtime.",
++  "description": "Contrato del estado intermedio entre architecture-analyze, architecture-validate y architecture-generate. Informativo: no hay validaci├│n en runtime.",
+   "type": "object",
+-  "required": ["proyecto", "nombre", "paso", "fecha"],
++  "required": ["proyecto", "nombre", "paso", "fecha", "resumen"],
+   "properties": {
+     "proyecto": {
+       "type": "string",
+       "description": "Ruta absoluta del proyecto analizado"
+     },
+     "nombre": {
+       "type": "string",
+       "description": "Slug kebab-case del proyecto; base del nombre del skill generado"
+     },
+     "paso": {
+       "type": "string",
+-      "enum": ["analyze", "generate", "listo"],
+-      "description": "Etapa actual del pipeline"
++      "enum": ["analyze", "listo"],
++      "description": "Etapa actual del pipeline. 'generate' ya no es un paso: el orquestador decide por artefactos en disco"
+     },
+     "resumen": {
+       "type": "string",
+-      "description": "Ruta al architecture-summary.md"
++      "description": "Ruta al architecture-summary.md. Requerido: architecture-analyze siempre lo escribe"
++    },
++    "progreso": {
++      "type": "string",
++      "enum": ["estructura", "stack", "testing", "resumen"],
++      "description": "Checkpoint del an├ílisis (Task 4). 'resumen' significa an├ílisis completo; permite retomar pasadas a medias"
+     },
+     "skillGenerada": {
+       "type": "string",
+-      "description": "Ruta principal al SKILL.md de convenciones generado"
++      "description": "Ruta principal al SKILL.md de convenciones generado (.claude/skills/...)"
++    },
++    "skillEspejo": {
++      "type": "string",
++      "description": "Ruta de la copia espejo (.opencode/skills/...)"
+     },
+     "fecha": {
+       "type": "string",
+       "format": "date-time",
+       "description": "Fecha ISO de la ├║ltima actualizaci├│n"
+     }
+   }
+ }
+\ No newline at end of file
+diff --git a/architecture-clone-plugins/tests/SCENARIOS.md b/architecture-clone-plugins/tests/SCENARIOS.md
+new file mode 100644
+index 0000000..170f166
+--- /dev/null
++++ b/architecture-clone-plugins/tests/SCENARIOS.md
+@@ -0,0 +1,14 @@
++# Escenarios architecture-validate (T1-T10)
++
++Fixture: `tests/fixture/proyecto-prueba/`. Para cada escenario: escribir el state.json indicado, cargar architecture-validate, correr checks, comparar reporte.
++
++- [x] T1 state.json no existe ÔåÆ V1 Ô£ù, DETENER, no crea archivo
++- [x] T2 estado sano ÔåÆ V1-V7 Ô£ô, CONTINUAR, sin cambios
++- [x] T3 resumen ruta muerta + 1 summary en disco ÔåÆ V4 sana ruta
++- [x] T4 resumen muerto + 0 summaries ÔåÆ V4 Ô£ù, DETENER
++- [x] T5 paso:"listo" + falta espejo existente en disco ÔåÆ V6 sana skillEspejo
++- [x] T6 paso:"listo" + skills borradas + summary v├ílido ÔåÆ V5 recalcula, orquestador ofrece regenerar
++- [x] T7 fecha no ISO ÔåÆ V7 sana
++- [x] T8 paso inv├ílido ÔåÆ V3 Ô£ù, DETENER, state intacto
++- [x] T9 analyze interrumpido con progreso:"estructura" ÔåÆ retoma desde stack (F5)
++- [x] T10 re-analiza con paso:"listo" ÔåÆ confirmar y forzar analyze (F4)
+diff --git a/architecture-clone-plugins/tests/fixture/proyecto-prueba/.architecture-clone/architecture-summary.md b/architecture-clone-plugins/tests/fixture/proyecto-prueba/.architecture-clone/architecture-summary.md
+new file mode 100644
+index 0000000..1a1c3ab
+--- /dev/null
++++ b/architecture-clone-plugins/tests/fixture/proyecto-prueba/.architecture-clone/architecture-summary.md
+@@ -0,0 +1,22 @@
++# Resumen de arquitectura: proyecto-prueba
++## 1. Estructura y convenciones de nombres
++Fixture de prueba. Carpeta src/ con archivos kebab-case.
++## 2. Tech stack y versiones
++Node.js 22, TypeScript 5.6.
++## 3. Dependencias y gesti├│n de paquetes
++npm. Express, zod, vitest.
++## 4. Patrones de dise├▒o del sistema
++Capas: routes ÔåÆ controllers ÔåÆ services.
++## 5. Manejo de estado
++No aplica.
++## 6. API y servicios
++Prefijo /api/v1. Envoltura { data }.
++## 7. Datos y validaci├│n
++zod en cada endpoint.
++## 8. Testing y convenciones
++vitest, tests colocado junto al fuente (<archivo>.test.ts).
++## 9. Config, CI/CD y entorno
++.env.example validado con zod.
++## 10. Reglas de oro (no negociables)
++Todo endpoint valida con zod antes de tocar el servicio.
++Toda feature nueva lleva test.
+\ No newline at end of file
+diff --git a/architecture-clone-plugins/tests/fixture/proyecto-prueba/.architecture-clone/state.json b/architecture-clone-plugins/tests/fixture/proyecto-prueba/.architecture-clone/state.json
+new file mode 100644
+index 0000000..3803939
+--- /dev/null
++++ b/architecture-clone-plugins/tests/fixture/proyecto-prueba/.architecture-clone/state.json
+@@ -0,0 +1 @@
++{"proyecto":"E:\\MY\\_TOOLS\\socarrandin-skills-ecosysem\\architecture-clone-plugins\\tests\\fixture\\proyecto-prueba","nombre":"proyecto-prueba","paso":"analyze","fecha":"2026-08-13T10:00:00Z","resumen":"E:\\MY\\_TOOLS\\socarrandin-skills-ecosysem\\architecture-clone-plugins\\tests\\fixture\\proyecto-prueba\\.architecture-clone\\architecture-summary.md"}
+diff --git a/architecture-clone-plugins/tests/fixture/proyecto-prueba/.claude/skills/.gitkeep b/architecture-clone-plugins/tests/fixture/proyecto-prueba/.claude/skills/.gitkeep
+new file mode 100644
+index 0000000..e69de29
+diff --git a/architecture-clone-plugins/tests/fixture/proyecto-prueba/.opencode/skills/.gitkeep b/architecture-clone-plugins/tests/fixture/proyecto-prueba/.opencode/skills/.gitkeep
+new file mode 100644
+index 0000000..e69de29

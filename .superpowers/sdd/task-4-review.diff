@@ -1,0 +1,31 @@
+diff --git a/architecture-clone-plugins/skills/architecture-analyze/SKILL.md b/architecture-clone-plugins/skills/architecture-analyze/SKILL.md
+index a008c7a..f6ddea0 100644
+--- a/architecture-clone-plugins/skills/architecture-analyze/SKILL.md
++++ b/architecture-clone-plugins/skills/architecture-analyze/SKILL.md
+@@ -4,23 +4,25 @@ description: Use cuando hay que analizar la arquitectura de un proyecto y clonar
+ ---
+ 
+ # architecture-analyze
+ 
+ ## Misi├│n
+ Descubrir c├│mo se construye un proyecto: patrones, decisiones y convenciones que definen su arquitectura. NO producir inventario de archivos.
+ 
+ ## Destino y estado
+ - Carpeta de estado: `<proyecto>/.architecture-clone/` (crear si falta)
+ - Escribir `state.json` al terminar con: `proyecto` (ruta absoluta), `nombre` (slug kebab-case), `paso: "analyze"`, `resumen` (ruta al summary), `fecha` (ISO). Respetar `state.schema.json` del plugin.
+-- Si `state.json` existe con `paso: "generate"` o `"listo"` ÔåÆ NO ejecutar an├ílisis completo; devolver control al orquestador.
++- Checkpoint `progreso`: actualizarlo en CADA hito del an├ílisis ÔÇö `estructura` (dimensiones 1-3), `stack` (4-6), `testing` (7-8), `resumen` (9 + escritura del summary). Si una pasada se interrumpe, retomar desde el checkpoint: NO re-analizar dimensiones ya completadas.
++- Si `state.json` existe con `paso: "listo"` o con `progreso: "resumen"` ÔåÆ el an├ílisis est├í completo; NO ejecutar an├ílisis completo; devolver control al orquestador.
+ 
+ ## Procedimiento
++0. Si `state.json.progreso` existe, retomar desde ah├¡: saltar dimensiones ya completadas y continuar en la siguiente.
+ 1. Ra├¡z del proyecto: ruta dada por el usuario o el proyecto actual. Si el usuario da un subdirectorio de app, analizar SOLO esa app.
+ 2. Leer manifiestos y config ra├¡z: gestor de paquetes (package.json + package-lock/pnpm-lock/yarn.lock, requirements.txt/pyproject.toml, go.mod, Cargo.toml, pom.xmlÔÇª), tsconfig, .env.example, Dockerfile, `.github/workflows/`, Makefile, scripts de build.
+ 3. Mapear estructura de carpetas (2-3 niveles). Excluir dependencias (node_modules, vendor, .venv, dist, build, .git) ÔÇö no aportan decisiones.
+ 4. Leer una muestra representativa de cada capa/├írea: al menos 2-3 archivos por capa (routes, controllers, services, models, testsÔÇª). Leer archivos REALES: cada convenci├│n declarada debe poder trazarse a un archivo concreto.
+ 5. Las 9 dimensiones de an├ílisis (secci├│n siguiente). Para cada una: extraer la convenci├│n REAL (no la ideal).
+ 6. Escribir `architecture-summary.md` con el contrato de salida exacto y `state.json`.
+ 
+ ## Dimensiones de an├ílisis (todas obligatorias)
+ 1. **Estructura y nombres**: organigrama de carpetas, patr├│n de nombres de archivo (kebab-case, PascalCase, camelCase), d├│nde vive cada tipo de archivo, reglas de exports/imports (sufijos `.js`, barrels, etc.)
+ 2. **Tech stack**: lenguajes, frameworks, runtimes, build tools, transpiladores, versi├│n de Node/Python/etc. y de TS si aplica

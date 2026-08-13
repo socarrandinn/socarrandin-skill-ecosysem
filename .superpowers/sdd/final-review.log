@@ -1,0 +1,8 @@
+570916d docs: README pipeline 3 fases + suite de escenarios T1-T10
+81cff26 fix: checklist genera valida skillEspejo registrado
+868c2d6 feat: generate usa state.json.resumen y registra skillEspejo
+b6e558b feat: analyze checkpoint - retomar pasadas a medias desde state.json.progreso
+d0924b1 feat: orquestador 3 fases - validate al inicio de cada paso, decisi├│n por artefactos, re-an├ílisis
+64d98e7 fix: V6 scope clause - solo aplica con paso=listo o campos presentes
+5bf74a8 feat: skill architecture-validate - checks V1-V7 de continuidad + auto-sanado
+ed420b5 feat: state contract - resumen required, paso sin generate, skillEspejo y progreso

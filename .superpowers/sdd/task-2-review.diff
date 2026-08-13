@@ -1,0 +1,123 @@
+diff --git a/architecture-clone-plugins/skills/architecture-validate/SKILL.md b/architecture-clone-plugins/skills/architecture-validate/SKILL.md
+new file mode 100644
+index 0000000..1938550
+--- /dev/null
++++ b/architecture-clone-plugins/skills/architecture-validate/SKILL.md
+@@ -0,0 +1,74 @@
++---
++name: architecture-validate
++description: Use cuando hay que verificar la continuidad del estado del pipeline architecture-clone antes de analizar o generar: "valida el estado", "revisa la continuidad", "┬┐est├í todo en orden?". Comprueba state.json contra el contrato y contra los artefactos en disco.
++---
++
++# architecture-validate
++
++## Misi├│n
++Verificar que `<proyecto>/.architecture-clone/state.json` y los artefactos del tier anterior (architecture-summary.md, SKILL.md de convenciones) sean coherentes entre s├¡ antes de que otra skill act├║e. NO analiza ni genera: solo vigila continuidad.
++
++## Entrada
++- `<proyecto>/.architecture-clone/state.json`
++- `<proyecto>/.architecture-clone/architecture-summary.md`
++- `<proyecto>/.claude/skills/*-convenciones/SKILL.md`
++- `<proyecto>/.opencode/skills/*-convenciones/SKILL.md`
++- Contrato: `state.schema.json` del plugin
++
++## Procedimiento ÔÇö checks V1 a V7, en orden
++Correr TODOS los checks y producir UN reporte. Severidades: Ô£ù bloqueante (detener pipeline), ÔÜá aviso (saneable), Ô£ô ok.
++
++### V1 ÔÇö state.json existe y parsea
++- No existe ÔåÆ Ô£ù: "no hay state.json; correr architecture-analyze". Nunca crear archivo vac├¡o.
++- JSON inv├ílido ÔåÆ Ô£ù: reportar el error de parseo.
++
++### V2 ÔÇö campos requeridos presentes
++- Requeridos: `proyecto`, `nombre`, `paso`, `fecha`, `resumen`.
++- Falta `fecha` ÔåÆ sanear con fecha actual ISO.
++- Falta cualquier otro requerido ÔåÆ Ô£ù.
++
++### V3 ÔÇö paso v├ílido
++- Valores v├ílidos: `analyze`, `listo`.
++- Otro valor ÔåÆ Ô£ù: decisi├│n humana, nunca adivinar.
++
++### V4 ÔÇö resumen existe en disco
++- `state.json.resumen` no existe en disco (y paso es `analyze` o `listo`) ÔåÆ buscar `architecture-summary.md` en `<proyecto>/.architecture-clone/`:
++  - exactamente 1 ÔåÆ sanear la ruta en state.json; reportar "V4: resumen corregido ÔåÆ <ruta> (encontrado en disco)".
++  - 0 o 2+ ÔåÆ Ô£ù: "resumen ilegible; correr architecture-analyze".
++
++### V5 ÔÇö paso coherente con artefactos
++- `paso:"listo"` y no existe ning├║n `*-convenciones/SKILL.md` ÔåÆ ÔÜá: si el summary existe en disco, recalcular `paso:"analyze"` y reportar "V5: paso recalculado a analyze (skills ausentes); regenerar skill con architecture-generate".
++- `paso:"analyze"` y existe `*-convenciones/SKILL.md` ÔåÆ ÔÜá: recalcular a `paso:"listo"` y rellenar `skillGenerada`/`skillEspejo` desde disco (ver V6).
++
++### V6 ÔÇö rutas de skill viven en disco
++- `skillGenerada` no existe o apunta a nada ÔåÆ escanear `<proyecto>/.claude/skills/*-convenciones/SKILL.md`:
++  - exactamente 1 ÔåÆ sanear `skillGenerada`; reportar con evidencia.
++  - 0 ÔåÆ dejar, reportar ÔÜá "skill principal ausente".
++- `skillEspejo` no existe o apunta a nada ÔåÆ escanear `<proyecto>/.opencode/skills/*-convenciones/SKILL.md`:
++  - exactamente 1 ÔåÆ sanear `skillEspejo`; reportar con evidencia.
++  - 0 ÔåÆ ÔÜá "skill parcial: falta espejo; completar con architecture-generate".
++
++### V7 ÔÇö fecha
++- `fecha` falta o no parsea ISO ÔåÆ sanear con fecha actual.
++
++## Auto-sanado ÔÇö reglas
++- Solo tocar `state.json`. Nunca crear ni borrar summary ni skills.
++- Solo sanar campos derivables de disco. Ambig├╝edad ÔåÆ DETENER con reporte.
++- Registrar cada saneo en el reporte con evidencia: "V6: skillEspejo corregido ÔåÆ <ruta> (encontrado en disco)".
++
++## Reporte ÔÇö formato obligatorio
++```
++architecture-validate: <proyecto>
++V1 Ô£ô state.json parsea
++V2 Ô£ô campos requeridos presentes
++V3 Ô£ô paso="analyze" v├ílido
++V4 Ô£ô resumen en disco: <ruta>
++V5 Ô£ô paso coherente con artefactos
++V6 ÔÜá skillEspejo corregido ÔåÆ <ruta> (encontrado en disco)
++V7 Ô£ô fecha ISO
++Resultado: CONTINUAR
++```
++Una l├¡nea por check, con severidad y evidencia. Resultado final: `CONTINUAR` (sin Ô£ù) o `DETENER` (con Ô£ù pendientes).
++
++## Regla de oro
++- Nunca adivinar: si hay ambig├╝edad, DETENER y reportar. El orquestador decide.
+\ No newline at end of file
+diff --git a/architecture-clone-plugins/tests/fixture/proyecto-prueba/.architecture-clone/architecture-summary.md b/architecture-clone-plugins/tests/fixture/proyecto-prueba/.architecture-clone/architecture-summary.md
+new file mode 100644
+index 0000000..1a1c3ab
+--- /dev/null
++++ b/architecture-clone-plugins/tests/fixture/proyecto-prueba/.architecture-clone/architecture-summary.md
+@@ -0,0 +1,22 @@
++# Resumen de arquitectura: proyecto-prueba
++## 1. Estructura y convenciones de nombres
++Fixture de prueba. Carpeta src/ con archivos kebab-case.
++## 2. Tech stack y versiones
++Node.js 22, TypeScript 5.6.
++## 3. Dependencias y gesti├│n de paquetes
++npm. Express, zod, vitest.
++## 4. Patrones de dise├▒o del sistema
++Capas: routes ÔåÆ controllers ÔåÆ services.
++## 5. Manejo de estado
++No aplica.
++## 6. API y servicios
++Prefijo /api/v1. Envoltura { data }.
++## 7. Datos y validaci├│n
++zod en cada endpoint.
++## 8. Testing y convenciones
++vitest, tests colocado junto al fuente (<archivo>.test.ts).
++## 9. Config, CI/CD y entorno
++.env.example validado con zod.
++## 10. Reglas de oro (no negociables)
++Todo endpoint valida con zod antes de tocar el servicio.
++Toda feature nueva lleva test.
+\ No newline at end of file
+diff --git a/architecture-clone-plugins/tests/fixture/proyecto-prueba/.architecture-clone/state.json b/architecture-clone-plugins/tests/fixture/proyecto-prueba/.architecture-clone/state.json
+new file mode 100644
+index 0000000..3803939
+--- /dev/null
++++ b/architecture-clone-plugins/tests/fixture/proyecto-prueba/.architecture-clone/state.json
+@@ -0,0 +1 @@
++{"proyecto":"E:\\MY\\_TOOLS\\socarrandin-skills-ecosysem\\architecture-clone-plugins\\tests\\fixture\\proyecto-prueba","nombre":"proyecto-prueba","paso":"analyze","fecha":"2026-08-13T10:00:00Z","resumen":"E:\\MY\\_TOOLS\\socarrandin-skills-ecosysem\\architecture-clone-plugins\\tests\\fixture\\proyecto-prueba\\.architecture-clone\\architecture-summary.md"}
+diff --git a/architecture-clone-plugins/tests/fixture/proyecto-prueba/.claude/skills/.gitkeep b/architecture-clone-plugins/tests/fixture/proyecto-prueba/.claude/skills/.gitkeep
+new file mode 100644
+index 0000000..e69de29
+diff --git a/architecture-clone-plugins/tests/fixture/proyecto-prueba/.opencode/skills/.gitkeep b/architecture-clone-plugins/tests/fixture/proyecto-prueba/.opencode/skills/.gitkeep
+new file mode 100644
+index 0000000..e69de29

@@ -1,0 +1,58 @@
+diff --git a/architecture-clone-plugins/skills/architecture-generate/SKILL.md b/architecture-clone-plugins/skills/architecture-generate/SKILL.md
+index f9a2c69..14a1cca 100644
+--- a/architecture-clone-plugins/skills/architecture-generate/SKILL.md
++++ b/architecture-clone-plugins/skills/architecture-generate/SKILL.md
+@@ -2,30 +2,30 @@
+ name: architecture-generate
+ description: Use cuando existe un resumen de arquitectura (architecture-summary.md + state.json en .architecture-clone/) y hay que generar el SKILL.md de convenciones del proyecto: "genera el skill de convenciones", "genera el skill".
+ ---
+ 
+ # architecture-generate
+ 
+ ## Misi├│n
+ Convertir el `architecture-summary.md` en un SKILL.md de convenciones reutilizable: en sesiones futuras, el agente lo carga y escribe c├│digo nuevo consistente con la arquitectura analizada.
+ 
+ ## Entradas y estado
+-- Leer `<proyecto>/.architecture-clone/state.json` y `<proyecto>/.architecture-clone/architecture-summary.md`
+-- Si no existe el summary o `state.json` ÔåÆ NO ejecutar; decir al usuario que primero corre architecture-analyze
++- Leer `<proyecto>/.architecture-clone/state.json`; el summary se lee desde la ruta `state.json.resumen` (NUNCA hardcodear la ruta)
++- Si no existe `state.json`, o `state.json.resumen` no existe en disco, o `state.json.progreso` no es `"resumen"` ÔåÆ NO ejecutar; decir al usuario que primero corre architecture-analyze (o architecture-validate)
+ - Slug del proyecto: `state.json.nombre`
+ 
+ ## Destino (espejo en ambas ubicaciones)
+ Escribir el MISMO contenido en:
+ 1. `<proyecto>/.claude/skills/<slug>-convenciones/SKILL.md` (Claude Code)
+ 2. `<proyecto>/.opencode/skills/<slug>-convenciones/SKILL.md` (OpenCode)
+ 
+-Crear carpetas si faltan. Actualizar `state.json` al final: `paso: "listo"`, `skillGenerada` (ruta principal), `fecha` ISO.
++Crear carpetas si faltan. Actualizar `state.json` al final: `paso: "listo"`, `skillGenerada` (ruta `.claude/skills/<slug>-convenciones/SKILL.md`), `skillEspejo` (ruta `.opencode/skills/<slug>-convenciones/SKILL.md`), `fecha` ISO.
+ 
+ ## Contrato del SKILL.md generado ÔÇö estructura EXACTA
+ 
+ ```markdown
+ ---
+ name: <slug>-convenciones
+ description: Use when escribiendo, editando o revisando c├│digo en <proyecto>. <2-4 keywords concretas del stack: ej. "Express, TypeScript, Zod, vitest">
+ ---
+ 
+ # <slug>-convenciones
+@@ -70,15 +70,15 @@ description: Use when escribiendo, editando o revisando c├│digo en <proyecto>. <
+ - Lenguaje de ├│rdenes concretas: "Siempre X", "Nunca Y", "Todo endpoint Z" ÔÇö no sugerencias ("considerarÔÇª")
+ - Ejemplos de c├│digo: copiar LITERALMENTE de archivos reales del proyecto (un controller, una ruta, un test, un validator). Abrir el archivo real y copiar su contenido, renombrando solo el recurso si se necesita. PROHIBIDO reconstruir ejemplos de memoria o inventar campos que no existen en el c├│digo real
+ 
+ ## Checklist de validaci├│n (OBLIGATORIO antes de terminar)
+ - [ ] Frontmatter YAML v├ílido: `name` y `description` presentes, sin tabulaciones
+ - [ ] `name` == nombre de la carpeta donde se escribe
+ - [ ] `description` empieza con "Use when" y menciona el proyecto
+ - [ ] Existen TODAS las secciones del contrato (ninguna omitida; "No aplica" en una l├¡nea si no corresponde)
+ - [ ] Reglas de oro presentes y no negociables
+ - [ ] Ejemplos de c├│digo copiados literalmente de archivos reales (verificar contra los archivos fuente: imports, campos, rutas)
+-- [ ] Copia espejo escrita en `.claude/skills/` Y `.opencode/skills/`
+-- [ ] `state.json` actualizado (`paso: "listo"`, `skillGenerada`, `fecha`)
++- [ ] Copia espejo escrita en `.claude/skills/` Y `.opencode/skills/`; ambas rutas registradas en `state.json` (`skillGenerada` + `skillEspejo`)
++- [ ] `state.json` actualizado (`paso: "listo"`, `skillGenerada`, `skillEspejo`, `fecha`)
+ 
+ ## Regla de oro
+-- Si falta el summary o el estado ÔåÆ no inventar: pedir el an├ílisis.
+\ No newline at end of file
++- Si falta el summary o el estado ÔåÆ no inventar: pedir el an├ílisis.

@@ -1,0 +1,86 @@
+diff --git a/architecture-clone-plugins/README.md b/architecture-clone-plugins/README.md
+index 043f9b0..335987e 100644
+--- a/architecture-clone-plugins/README.md
++++ b/architecture-clone-plugins/README.md
+@@ -1,35 +1,36 @@
+ # architecture-clone-plugins
+ 
+ Ecosistema de skills para OpenCode/Claude Code que analiza la arquitectura de un proyecto y genera un skill de convenciones reutilizable: en sesiones futuras, el agente carga ese skill y escribe c├│digo nuevo consistente con "c├│mo se construye" ese proyecto.
+ 
+-Pipeline: `analizar ÔåÆ resumir ÔåÆ generar skill de convenciones`.
++Pipeline: `validar ÔåÆ analizar ÔåÆ resumir ÔåÆ generar skill de convenciones ÔåÆ validar`.
+ 
+ ## Instalaci├│n
+ 
+ 1. Copiar `agent/`, `command/` y `skills/` a tu carpeta de skills de OpenCode (ej. `~/.config/opencode/skills/`), o usar el repo como carpeta de skills v├¡a `skills.paths` en `opencode.json`.
+ 2. Reiniciar OpenCode.
+ 
+ ## Uso
+ 
+ ```
+ clona la arquitectura de este proyecto
+ /architecture-clone
+ analiza la arquitectura de <ruta>
+ ```
+ 
+ El orquestador (`architecture-clone`) decide la skill del paso actual seg├║n `state.json`. Una skill activa por turno.
+ 
+ ## Pipeline
+ 
+ | Skill | Salida |
+ |---|---|
++| architecture-validate | Reporte V1-V7 de continuidad + auto-sanado de `state.json` |
+ | architecture-analyze | `<proyecto>/.architecture-clone/state.json` + `architecture-summary.md` |
+ | architecture-generate | `<proyecto>/.claude/skills/<slug>-convenciones/SKILL.md` + espejo en `.opencode/skills/` |
+ 
+ ## Qu├® analiza `architecture-analyze`
+ 
+ - Estructura de carpetas y convenciones de nombres
+ - Tech stack (lenguajes, frameworks, runtimes, build tools) con versiones
+ - Dependencias y gestor de paquetes
+ - Patrones de dise├▒o del sistema (MVC, capas, microservicios, hexagonalÔÇª)
+ - Manejo de estado
+@@ -44,21 +45,21 @@ El resumen documenta **patrones y decisiones**, no un inventario archivo por arc
+ 
+ `<slug>-convenciones` es un SKILL.md est├índar (frontmatter `name` + `description`, quick reference de convenciones, reglas concretas y ejemplos de c├│digo t├¡picos). Se escribe en dos ubicaciones para que lo cargue cualquier harness:
+ 
+ | Ubicaci├│n | Harness |
+ |---|---|
+ | `<proyecto>/.claude/skills/<slug>-convenciones/SKILL.md` | Claude Code |
+ | `<proyecto>/.opencode/skills/<slug>-convenciones/SKILL.md` | OpenCode (auto-detectado) |
+ 
+ ## Estado intermedio
+ 
+-`<proyecto>/.architecture-clone/` guarda `state.json` (contrato en `state.schema.json`) y `architecture-summary.md`. Versionable con el repo; permite retomar an├ílisis a medias.
++`<proyecto>/.architecture-clone/` guarda `state.json` (contrato en `state.schema.json`), `architecture-summary.md` y el checkpoint `progreso`. Versionable con el repo; permite retomar an├ílisis a medias y validar continuidad antes de cada paso.
+ 
+ ## Limitaciones conocidas
+ 
+ - `state.schema.json` es informativo: no hay validaci├│n en runtime.
+ - El resumen y el skill generado se escriben en espa├▒ol, independientemente del idioma del c├│digo analizado.
+ - El an├ílisis lo hace el agente con sus herramientas de lectura; proyectos muy grandes pueden requerir varias pasadas.
+ 
+ ## Licencia
+ 
+ MIT.
+\ No newline at end of file
+diff --git a/architecture-clone-plugins/tests/SCENARIOS.md b/architecture-clone-plugins/tests/SCENARIOS.md
+new file mode 100644
+index 0000000..170f166
+--- /dev/null
++++ b/architecture-clone-plugins/tests/SCENARIOS.md
+@@ -0,0 +1,14 @@
++# Escenarios architecture-validate (T1-T10)
++
++Fixture: `tests/fixture/proyecto-prueba/`. Para cada escenario: escribir el state.json indicado, cargar architecture-validate, correr checks, comparar reporte.
++
++- [x] T1 state.json no existe ÔåÆ V1 Ô£ù, DETENER, no crea archivo
++- [x] T2 estado sano ÔåÆ V1-V7 Ô£ô, CONTINUAR, sin cambios
++- [x] T3 resumen ruta muerta + 1 summary en disco ÔåÆ V4 sana ruta
++- [x] T4 resumen muerto + 0 summaries ÔåÆ V4 Ô£ù, DETENER
++- [x] T5 paso:"listo" + falta espejo existente en disco ÔåÆ V6 sana skillEspejo
++- [x] T6 paso:"listo" + skills borradas + summary v├ílido ÔåÆ V5 recalcula, orquestador ofrece regenerar
++- [x] T7 fecha no ISO ÔåÆ V7 sana
++- [x] T8 paso inv├ílido ÔåÆ V3 Ô£ù, DETENER, state intacto
++- [x] T9 analyze interrumpido con progreso:"estructura" ÔåÆ retoma desde stack (F5)
++- [x] T10 re-analiza con paso:"listo" ÔåÆ confirmar y forzar analyze (F4)

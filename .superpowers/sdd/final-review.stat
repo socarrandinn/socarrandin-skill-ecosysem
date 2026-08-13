@@ -1,0 +1,12 @@
+ architecture-clone-plugins/README.md               |  5 +-
+ .../agent/architecture-clone.md                    | 23 ++++---
+ .../skills/architecture-analyze/SKILL.md           |  4 +-
+ .../skills/architecture-generate/SKILL.md          | 12 ++--
+ .../skills/architecture-validate/SKILL.md          | 74 ++++++++++++++++++++++
+ architecture-clone-plugins/state.schema.json       | 21 ++++--
+ architecture-clone-plugins/tests/SCENARIOS.md      | 14 ++++
+ .../.architecture-clone/architecture-summary.md    | 22 +++++++
+ .../proyecto-prueba/.architecture-clone/state.json |  1 +
+ .../proyecto-prueba/.claude/skills/.gitkeep        |  0
+ .../proyecto-prueba/.opencode/skills/.gitkeep      |  0
+ 11 files changed, 152 insertions(+), 24 deletions(-)
