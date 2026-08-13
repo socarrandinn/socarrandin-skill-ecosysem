@@ -9,8 +9,8 @@ description: Use cuando existe un resumen de arquitectura (architecture-summary.
 Convertir el `architecture-summary.md` en un SKILL.md de convenciones reutilizable: en sesiones futuras, el agente lo carga y escribe código nuevo consistente con la arquitectura analizada.
 
 ## Entradas y estado
-- Leer `<proyecto>/.architecture-clone/state.json` y `<proyecto>/.architecture-clone/architecture-summary.md`
-- Si no existe el summary o `state.json` → NO ejecutar; decir al usuario que primero corre architecture-analyze
+- Leer `<proyecto>/.architecture-clone/state.json`; el summary se lee desde la ruta `state.json.resumen` (NUNCA hardcodear la ruta)
+- Si no existe `state.json`, o `state.json.resumen` no existe en disco, o `state.json.progreso` no es `"resumen"` → NO ejecutar; decir al usuario que primero corre architecture-analyze (o architecture-validate)
 - Slug del proyecto: `state.json.nombre`
 
 ## Destino (espejo en ambas ubicaciones)
@@ -18,7 +18,7 @@ Escribir el MISMO contenido en:
 1. `<proyecto>/.claude/skills/<slug>-convenciones/SKILL.md` (Claude Code)
 2. `<proyecto>/.opencode/skills/<slug>-convenciones/SKILL.md` (OpenCode)
 
-Crear carpetas si faltan. Actualizar `state.json` al final: `paso: "listo"`, `skillGenerada` (ruta principal), `fecha` ISO.
+Crear carpetas si faltan. Actualizar `state.json` al final: `paso: "listo"`, `skillGenerada` (ruta `.claude/skills/<slug>-convenciones/SKILL.md`), `skillEspejo` (ruta `.opencode/skills/<slug>-convenciones/SKILL.md`), `fecha` ISO.
 
 ## Contrato del SKILL.md generado — estructura EXACTA
 
@@ -77,7 +77,7 @@ description: Use when escribiendo, editando o revisando código en <proyecto>. <
 - [ ] Existen TODAS las secciones del contrato (ninguna omitida; "No aplica" en una línea si no corresponde)
 - [ ] Reglas de oro presentes y no negociables
 - [ ] Ejemplos de código copiados literalmente de archivos reales (verificar contra los archivos fuente: imports, campos, rutas)
-- [ ] Copia espejo escrita en `.claude/skills/` Y `.opencode/skills/`
+- [ ] Copia espejo escrita en `.claude/skills/` Y `.opencode/skills/`; ambas rutas registradas en `state.json` (`skillGenerada` + `skillEspejo`)
 - [ ] `state.json` actualizado (`paso: "listo"`, `skillGenerada`, `fecha`)
 
 ## Regla de oro
