@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "architecture-clone state.json",
+  "description": "Contrato del estado intermedio entre architecture-analyze y architecture-generate. Informativo: no hay validación en runtime.",
+  "type": "object",
+  "required": ["proyecto", "nombre", "paso", "fecha"],
+  "properties": {
+    "proyecto": {
+      "type": "string",
+      "description": "Ruta absoluta del proyecto analizado"
+    },
+    "nombre": {
+      "type": "string",
+      "description": "Slug kebab-case del proyecto; base del nombre del skill generado"
+    },
+    "paso": {
+      "type": "string",
+      "enum": ["analyze", "generate", "listo"],
+      "description": "Etapa actual del pipeline"
+    },
+    "resumen": {
+      "type": "string",
+      "description": "Ruta al architecture-summary.md"
+    },
+    "skillGenerada": {
+      "type": "string",
+      "description": "Ruta principal al SKILL.md de convenciones generado"
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha ISO de la última actualización"
+    }
+  }
+}
