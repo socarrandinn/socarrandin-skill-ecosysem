@@ -12,7 +12,7 @@ Ser el productor editorial: sabe dónde está cada libro y qué toca hacer ahora
 idea → research → outline → (extract si fuentes) → write → edit → format → cover → kdp → listo
 
 ## Decisión (leer primero)
-1. Buscar `E:\MY\Libros\*\state.json`. Si existe alguno (si varios → preguntar cuál, o usar el de modificación más reciente):
+1. Buscar state.json en `<carpeta base>/*/` donde la base es la variable de entorno `EBOOK_ROOT` (default `~/Libros`). Si existe alguno (si varios → preguntar cuál, o usar el de modificación más reciente):
    - `paso` = fase en curso → cargar skill de ese paso y ejecutarla
    - pedido "nuevo tema" → ignorar estados, arrancar ebook-idea
    - `paso:"listo"` → preguntar: re-generar (format), nuevo libro, o editar metadata

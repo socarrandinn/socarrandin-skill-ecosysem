@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/socarrandin/ebook-studio-plugins/state.schema.json",
+  "title": "state.json — estado de producción de un ebook",
+  "description": "Schema informativo del state.json que persiste el progreso de cada libro. Lo escriben ebook-idea y las skills del pipeline.",
+  "type": "object",
+  "required": ["dir", "paso", "idioma", "titulo"],
+  "properties": {
+    "dir": {
+      "type": "string",
+      "description": "Carpeta del libro (resuelta desde EBOOK_ROOT). Los scripts leen/escriben archivos aquí."
+    },
+    "paso": {
+      "type": "string",
+      "enum": ["idea", "research", "outline", "extract", "write", "edit", "format", "cover", "kdp", "listo"],
+      "description": "Fase actual del pipeline. Dueño exclusivo: orquestador ebook-studio."
+    },
+    "mercado": {
+      "type": "string",
+      "enum": ["es", "us"],
+      "description": "Mercado de venta: es = Amazon.es/LatAm, us = Amazon.com."
+    },
+    "idioma": {
+      "type": "string",
+      "enum": ["es", "en"],
+      "description": "Idioma del libro; también localiza los mensajes de los scripts."
+    },
+    "nicho": { "type": "string", "description": "Tema exacto del libro." },
+    "audiencia": { "type": "string", "enum": ["principiante", "intermedio", "experto"] },
+    "tono": { "type": "string", "enum": ["cercano", "formal", "motivador", "directo"] },
+    "longitud": { "type": "string", "enum": ["corto", "medio", "largo"], "description": "corto ~12k palabras, medio ~25k, largo ~45k." },
+    "fuentes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Rutas a PDFs fuente (absolutas o relativas a dir). Vacío = contenido original."
+    },
+    "capitulos": {
+      "type": "array",
+      "description": "Estructura del outline; también registra avance de escritura.",
+      "items": {
+        "type": "object",
+        "required": ["n", "titulo", "palabras"],
+        "properties": {
+          "n": { "type": "integer", "description": "Número de capítulo (1-based)." },
+          "titulo": { "type": "string" },
+          "palabras": { "type": "integer", "description": "Wordcount objetivo del capítulo." }
+        }
+      }
+    },
+    "extra": { "description": "Campos libres por skill (research, kdp, etc.)." }
+  },
+  "additionalProperties": true
+}

@@ -10,8 +10,11 @@ Convertir material base a markdown limpio. Un solo comando, sin prometer más.
 
 ## Pasos
 1. Verificar state.fuentes no vacío; si vacío → decir que no aplica, saltar a write
-2. Ejecutar: `python "C:\Users\silvio\.config\opencode\skills\ebook-extract\scripts\extract_pdf.py" "<state.json>"`
-3. Revisar salida: FALTA = avisar archivo inexistente; archivos ilegibles (poco texto) → avisar
+2. Ejecutar desde la carpeta de esta skill (scripts/ está junto a este SKILL.md): `python scripts/extract_pdf.py "<state.json>"`
+3. Revisar salida:
+   - `FALTA:` → avisar archivo inexistente
+   - `WARN_SCANNED:` → PDF escaneado sin texto extraíble: avisar que hay que transcribir manualmente o usar OCR aparte
+   - `ERROR:` → reportar (PDF corrupto o faltante)
 4. Actualizar `paso:"extract"` en state
 5. Resumir: "Extraje 3 recetarios → extraido/. Reescritura usará este material, sin copiar textualmente."
 

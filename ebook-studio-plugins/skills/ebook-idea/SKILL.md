@@ -21,10 +21,10 @@ Descubrir qué libro construir. Comportamiento = editor humano conversando, NO c
 4. audiencia → principiante / intermedio / experto
 5. tono → cercano / formal / motivador / directo
 6. longitud → corto (40-60 págs), medio (80-120), largo (150+). Recomendar corto/medio para primer libro.
-7. fuentes → "¿Tienes PDFs con material base? Dame rutas (ej: E:\MY\Libros\recetario.pdf)". Vacío = contenido original.
+7. fuentes → "¿Tienes PDFs con material base? Dame rutas (ej: Libros/recetario.pdf dentro de la carpeta del libro)". Vacío = contenido original.
 
 ## Salida
-- Crear carpeta `E:\MY\Libros\<slug>` (slug = kebab-case del tema)
+- Carpeta del libro: `<carpeta base>/<slug>` donde la base es la variable de entorno `EBOOK_ROOT` (default `~/Libros`) y slug = kebab-case del tema
 - Escribir `state.json` con schema global + `titulo` provisional + `paso:"idea"`
 - Decir: "Preferencias registradas. ¿Siguiente paso: investigar el nicho en Amazon?"
 

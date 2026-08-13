@@ -1,0 +1,4 @@
+# Dependencias Python del ecosistema (los scripts las instalan desde
+# requirements.txt propios de cada skill; este es el agregado para desarrollo).
+Pillow==11.0.0
+pdfplumber==0.11.4

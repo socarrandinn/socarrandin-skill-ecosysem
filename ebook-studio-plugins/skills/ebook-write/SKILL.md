@@ -18,7 +18,9 @@ Escribir como persona, no como AI. Cada capítulo un archivo.
 1. Leer outline.md + state
 2. Por cada capítulo (orden): escribir `capitulos/capitulo-NN-titulo.md` con el wordcount del outline
 3. Tras cada capítulo: anotar avance en `capitulos[].n` del state.json; cada 2-3 capítulos, resumir avance al usuario ("3/10 capítulos, 8k palabras")
-4. Al terminar: concatenar en `manuscrito.md` con estructura completa (portada, copyright, intro, capítulos, conclusión, CTA)
+4. Al terminar: concatenar en `manuscrito.md` con estructura completa (portada, copyright, intro, capítulos, conclusión, CTA) y ejecutar el verificador desde la carpeta de esta skill (scripts/ está junto a este SKILL.md): `python scripts/check_manuscrito.py "<state.json>"`
+   - `WARN_SHORT:` → capítulo muy por debajo del objetivo del outline: expandirlo antes de pasar a edit
+   - `WARN:` sin capitulos[] → solo conteo total, seguir igual
 5. Preguntar: "Manuscrito completo: N capítulos, N palabras. ¿Reviso estilo y coherencia?"
 
 ## Regla
