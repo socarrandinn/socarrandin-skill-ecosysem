@@ -40,7 +40,7 @@ Correr TODOS los checks y producir UN reporte. Severidades: ✗ bloqueante (dete
 - `paso:"listo"` y no existe ningún `*-convenciones/SKILL.md` → ⚠: si el summary existe en disco, recalcular `paso:"analyze"` y reportar "V5: paso recalculado a analyze (skills ausentes); regenerar skill con architecture-generate".
 - `paso:"analyze"` y existe `*-convenciones/SKILL.md` → ⚠: recalcular a `paso:"listo"` y rellenar `skillGenerada`/`skillEspejo` desde disco (ver V6).
 
-### V6 — rutas de skill viven en disco
+### V6 — rutas de skill viven en disco (solo si `paso:"listo"` o si los campos existen en state.json; con `paso:"analyze"` y sin campos, marcar ✓ — las skills aún no se generan)
 - `skillGenerada` no existe o apunta a nada → escanear `<proyecto>/.claude/skills/*-convenciones/SKILL.md`:
   - exactamente 1 → sanear `skillGenerada`; reportar con evidencia.
   - 0 → dejar, reportar ⚠ "skill principal ausente".
