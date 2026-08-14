@@ -25,7 +25,7 @@
     "progreso": {
       "type": "string",
       "enum": ["estructura", "stack", "testing", "resumen"],
-      "description": "Checkpoint del análisis (Task 4). 'resumen' significa análisis completo; permite retomar pasadas a medias"
+      "description": "Checkpoint del análisis. 'resumen' significa análisis completo; permite retomar pasadas a medias"
     },
     "skillGenerada": {
       "type": "string",

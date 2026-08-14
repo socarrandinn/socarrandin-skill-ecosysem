@@ -37,7 +37,7 @@ Correr TODOS los checks y producir UN reporte. Severidades: ✗ bloqueante (dete
   - 0 o 2+ → ✗: "resumen ilegible; correr architecture-analyze".
 
 ### V5 — paso coherente con artefactos
-- `paso:"listo"` y no existe ningún `*-convenciones/SKILL.md` → ⚠: si el summary existe en disco, recalcular `paso:"analyze"` y reportar "V5: paso recalculado a analyze (skills ausentes); regenerar skill con architecture-generate".
+- `paso:"listo"` y no existe ningún `*-convenciones/SKILL.md` → ⚠: si el summary existe en disco, recalcular `paso:"analyze"` Y sanear `progreso:"resumen"` (el summary en disco implica análisis completo), reportar "V5: paso recalculado a analyze y progreso a resumen (skills ausentes); regenerar skill con architecture-generate".
 - `paso:"analyze"` y existe `*-convenciones/SKILL.md` → ⚠: recalcular a `paso:"listo"` y rellenar `skillGenerada`/`skillEspejo` desde disco (ver V6).
 
 ### V6 — rutas de skill viven en disco (solo si `paso:"listo"` o si los campos existen en state.json; con `paso:"analyze"` y sin campos, marcar ✓ — las skills aún no se generan)

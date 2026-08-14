@@ -1,6 +1,7 @@
 # Escenarios architecture-validate (T1-T10)
 
 Fixture: `tests/fixture/proyecto-prueba/`. Para cada escenario: escribir el state.json indicado, cargar architecture-validate, correr checks, comparar reporte.
+Antes de cada escenario: reemplazar las rutas absolutas de `state.json` (proyecto, resumen) por las locales del repo.
 
 - [x] T1 state.json no existe → V1 ✗, DETENER, no crea archivo
 - [x] T2 estado sano → V1-V7 ✓, CONTINUAR, sin cambios
